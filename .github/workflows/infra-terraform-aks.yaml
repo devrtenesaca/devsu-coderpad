@@ -44,7 +44,7 @@ jobs:
       - name: setup Terraform CLI
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.6.0"
+          terraform_version: "1.8.5"
 
       #### Azure login via OIDC (Passwordless)
       - name: Azure login via OIDC (Passwordless)
