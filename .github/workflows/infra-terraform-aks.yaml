@@ -31,6 +31,10 @@ jobs:
       TF_STATE_STORAGE_ACCOUNT: "tfstatertenesacadevsu" 
       TF_STATE_CONTAINER: "tfstate"
       TF_STATE_KEY: "aks.terraform.tfstate"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
 
     steps:
       #### Checkout del código and setup Terraform CLI

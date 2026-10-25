@@ -8,8 +8,7 @@ TF_STATE_KEY            ?= aks.terraform.tfstate
 TAG=coderpad
 
 
-.PHONY: infra_init infra_fmt infra_validate infra_apply infra_destroy deploy_infra_aks
-
+.PHONY: .PHONY: tf-init backend-init tf-fmt tf-validate tf-apply tf-destroy deploy-infra-aks
 #-----Backend for Terraform state-----
 backend-init:
 	@echo "creating resource group for Terraform state..."
