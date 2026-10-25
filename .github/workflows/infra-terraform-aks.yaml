@@ -1,7 +1,7 @@
 name: "1. Infrastructure (Terraform AKS via Make)"
 
 on:
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub Actions
+  workflow_dispatch: # allows manual execution of the workflow
   push:
     branches: [ "main" ]
     paths:
@@ -13,7 +13,7 @@ on:
       - 'terraform/**'
       - 'Makefile'
 
-# Permiso obligatorio para que OIDC funcione
+# OIDC permissions for Azure login
 permissions:
   id-token: write
   contents: read
@@ -23,32 +23,47 @@ jobs:
     name: "Terraform Execution via Makefile"
     runs-on: ubuntu-latest
 
-    # Variables de entorno para que tu Makefile sepa qué storage usar
+    #### enviroment variables for Terraform backend configuration
     env:
       AZURE_LOCATION: "eastus2"
-      TF_STATE_RG: "rg-terraform-state-demo"
-      TF_STATE_STORAGE_ACCOUNT: "sttfstatedevsu01" # Pon el nombre que creaste con make
+      TF_PREFIX: "devsu"
+      TF_STATE_RG: "rg-terraform-state-devsu" 
+      TF_STATE_STORAGE_ACCOUNT: "tfstatertenesacadevsu" 
       TF_STATE_CONTAINER: "tfstate"
       TF_STATE_KEY: "aks.terraform.tfstate"
 
     steps:
-      - name: Checkout del código
+      #### Checkout del código and setup Terraform CLI
+      - name: Code Checkout 
         uses: actions/checkout@v4
 
-      - name: Configurar Terraform CLI
+      - name: setup Terraform CLI
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.6.0"
 
-      - name: Iniciar sesión en Azure mediante OIDC (Passwordless)
+      #### Azure login via OIDC (Passwordless)
+      - name: Azure login via OIDC (Passwordless)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      #### create backend to store terraform state
+      - name: create backend resource group and storage account for Terraform state
+        run: make backend-init
+      
+      #### Terraform Init and Plan via Makefile
+
       - name: Terraform Init (via Make)
         run: make tf-init
+      
+      - name: Terraform Format (via Make)
+        run: make tf-fmt
+      
+      - name: Terraform Validate (via Make)
+        run: make tf-validate
 
       - name: Terraform Plan (via Make)
         run: make tf-plan

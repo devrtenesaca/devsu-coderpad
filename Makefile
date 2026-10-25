@@ -2,7 +2,6 @@ PREFIX ?= devsu
 TF_DIR ?= infra
 AZURE_LOCATION          ?= eastus2
 TF_STATE_RG             ?= rg-terraform-state-$(PREFIX)
-
 TF_STATE_STORAGE_ACCOUNT?= tfstatertenesacadevsu
 TF_STATE_CONTAINER      ?= tfstate
 TF_STATE_KEY            ?= aks.terraform.tfstate
@@ -12,7 +11,7 @@ TAG=coderpad
 .PHONY: infra_init infra_fmt infra_validate infra_apply infra_destroy deploy_infra_aks
 
 #-----Backend for Terraform state-----
-backend_init:
+backend-init:
 	@echo "creating resource group for Terraform state..."
 	az group create --name $(TF_STATE_RG) --location $(AZURE_LOCATION)
 	@echo "creating storage account for Terraform state..."
@@ -27,7 +26,9 @@ backend_init:
 
 tf-init:
 	@echo "Initializing Terraform..."
-	cd $(TF_DIR) && terraform init -input=false \
+	cd $(TF_DIR) && terraform init \
+		-reconfigure \
+		-input=false \
 		-backend-config="resource_group_name=$(TF_STATE_RG)" \
 		-backend-config="storage_account_name=$(TF_STATE_STORAGE_ACCOUNT)" \
 		-backend-config="container_name=$(TF_STATE_CONTAINER)" \
