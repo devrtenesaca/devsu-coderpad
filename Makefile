@@ -25,7 +25,7 @@ backend_init:
 #-----IaC with Terraform-----
 
 
-tf_init:
+tf-init:
 	@echo "Initializing Terraform..."
 	cd $(TF_DIR) && terraform init -input=false \
 		-backend-config="resource_group_name=$(TF_STATE_RG)" \
@@ -33,25 +33,25 @@ tf_init:
 		-backend-config="container_name=$(TF_STATE_CONTAINER)" \
 		-backend-config="key=$(TF_STATE_KEY)"
 
-tf_fmt:
+tf-fmt:
 	@echo "Formatting Terraform files..."
 	cd $(TF_DIR) && terraform fmt -recursive
 
-tf_validate:
+tf-validate:
 	@echo "Validating Terraform files..."
 	cd $(TF_DIR) && terraform validate
 
-tf_apply:
+tf-apply:
 	@echo "Applying Terraform files..."
 	cd $(TF_DIR) && terraform apply -auto-approve
 
-tf_destroy:
+tf-destroy:
 	@echo "Destroying Terraform files..."
 	cd $(TF_DIR) && terraform destroy -auto-approve
 
-deploy_infra_aks:
+deploy-infra-aks:
 	@echo "Deploying infrastructure for AKS..."
-	$(MAKE) tf_init
-	$(MAKE) tf_fmt
-	$(MAKE) tf_validate
-	$(MAKE) tf_apply
+	$(MAKE) tf-init
+	$(MAKE) tf-fmt
+	$(MAKE) tf-validate
+	$(MAKE) tf-apply
