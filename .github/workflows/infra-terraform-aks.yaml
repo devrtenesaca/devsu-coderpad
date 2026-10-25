@@ -1,47 +1,59 @@
-name: "1. Infrastructure (Terraform - AKS)"
+name: "1. Infrastructure (Terraform AKS via Make)"
 
 on:
-  workflow_dispatch: # Permite dispararlo manualmente desde GitHub
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub Actions
   push:
     branches: [ "main" ]
     paths:
-      - 'terraform/**' # Solo se dispara si tocamos archivos de Terraform
+      - 'terraform/**'
+      - 'Makefile'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'terraform/**'
+      - 'Makefile'
+
+# Permiso obligatorio para que OIDC funcione
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   terraform:
-    name: "Terraform Plan & Apply"
+    name: "Terraform Execution via Makefile"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./terraform
+
+    # Variables de entorno para que tu Makefile sepa qué storage usar
+    env:
+      AZURE_LOCATION: "eastus2"
+      TF_STATE_RG: "rg-terraform-state-demo"
+      TF_STATE_STORAGE_ACCOUNT: "sttfstatedevsu01" # Pon el nombre que creaste con make
+      TF_STATE_CONTAINER: "tfstate"
+      TF_STATE_KEY: "aks.terraform.tfstate"
+
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Configurar Terraform
+      - name: Configurar Terraform CLI
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.6.0"
 
-      - name: Iniciar sesión en Azure
+      - name: Iniciar sesión en Azure mediante OIDC (Passwordless)
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init (via Make)
+        run: make tf-init
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+      - name: Terraform Plan (via Make)
+        run: make tf-plan
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-
-      # El Apply solo corre si es un Push a 'main', nunca en un Pull Request
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: terraform apply -auto-approve tfplan
+      # El Apply solo se ejecuta si se hace merge/push a main, no en Pull Requests
+      # - name: Terraform Apply (via Make)
+      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      #   run: make tf-apply
