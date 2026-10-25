@@ -1,0 +1,47 @@
+name: "1. Infrastructure (Terraform - AKS)"
+
+on:
+  workflow_dispatch: # Permite dispararlo manualmente desde GitHub
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**' # Solo se dispara si tocamos archivos de Terraform
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+
+jobs:
+  terraform:
+    name: "Terraform Plan & Apply"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Iniciar sesión en Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      # El Apply solo corre si es un Push a 'main', nunca en un Pull Request
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: terraform apply -auto-approve tfplan

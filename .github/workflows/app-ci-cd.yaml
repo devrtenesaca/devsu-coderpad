@@ -1,0 +1,73 @@
+name: "2. Application CI/CD"
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'terraform/**'
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'terraform/**'
+      - 'docs/**'
+      - '*.md'
+
+jobs:
+  # 1. Pruebas y Calidad
+  code-quality-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          pip install -r requirements.txt flake8 coverage
+          flake8 . --count --select=E9,F63,F7,F82 --show-source
+          coverage run --source='api' manage.py test
+          coverage report -m
+
+  # 2. Build, Escaneo y Push de Docker
+  build-and-push:
+    needs: code-quality-and-tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/demo-devops-python:${{ github.sha }},${{ secrets.DOCKER_USERNAME }}/demo-devops-python:latest
+
+  # 3. Despliegue en el clúster AKS existente
+  deploy-to-aks:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Obtener Kubeconfig de AKS
+        run: |
+          az aks get-credentials \
+            --resource-group rg-devops-challenge \
+            --name aks-devops-demo \
+            --overwrite-existing
+      - name: Desplegar en Kubernetes
+        run: |
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/hpa.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl set image deployment/demo-api-deployment api=${{ secrets.DOCKER_USERNAME }}/demo-devops-python:${{ github.sha }}
+          kubectl rollout status deployment/demo-api-deployment --timeout=120s

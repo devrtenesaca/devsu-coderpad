@@ -1,0 +1,29 @@
+{
+  "name": "Python 3.11 - Django API Dev",
+  // Imagen oficial optimizada para desarrollo en Python
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+
+  // Reenvía el puerto 8000 a tu máquina física automáticamente
+  "forwardPorts": [8000],
+
+  // Variables de entorno dentro del contenedor
+  "containerEnv": {
+    "DJANGO_SECRET_KEY": "clave-secreta-para-pruebas-locales-devcontainer",
+    "DATABASE_NAME": "db.sqlite3"
+  },
+
+  // Extensiones útiles instaladas dentro del contenedor en VS Code
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "batisteo.vscode-django"
+      ]
+    }
+  },
+
+  // Comando que se ejecuta una sola vez tras crear el contenedor:
+  // Instala dependencias y corre las migraciones de SQLite automáticamente
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && python manage.py migrate"
+}

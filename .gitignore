@@ -1,0 +1,22 @@
+*.log
+*.pot
+*.pyc
+__pycache__/
+
+db.sqlite3
+
+# Ignore Terraform files
+.terraform/
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+.env
