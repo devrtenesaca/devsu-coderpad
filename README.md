@@ -1,139 +1,57 @@
-# Demo Devops Python
+# 🚀 DevOps Challenge - API REST Django en Azure AKS
 
-This is a simple application to be used in the technical test of DevOps.
+[![Infrastructure Pipeline](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/infra-terraform-aks.yaml/badge.svg)](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/infra-terraform-aks.yaml)
+[![Application CI/CD](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/app-ci-cd.yaml/badge.svg)](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/app-ci-cd.yaml)
 
-## Getting Started
+Solución técnica para la prueba práctica de DevOps. La arquitectura implementa aprovisionamiento con **Terraform**, autenticación segura **OIDC (Passwordless)**, contenedorización optimizada para producción con **Docker**, despliegue en **Azure Kubernetes Service (AKS)** con alta disponibilidad, y pipelines automatizados mediante **GitHub Actions** y **Makefile**.
 
-### Prerequisites
+---
 
-- Python 3.11.3
+## 📌 Enlaces Rápidos y Entregables
 
-### Installation
+* **🌐 URL Pública de la API (Producción):**  
+  👉 `http://<TU_IP_PUBLICA_DE_AZURE>/api/users/`
+* **⚙️ Pipelines de GitHub Actions (Ejecuciones Públicas):**  
+  * [Pipeline 1: Infraestructura (Terraform)](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/infra-terraform-aks.yaml)
+  * [Pipeline 2: Aplicación y Despliegue](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/app-ci-cd.yaml)
 
-Clone this repo.
+---
 
-```bash
-git clone https://bitbucket.org/devsu/demo-devops-python.git
-```
+## 🏗️ 1. Arquitectura General del Sistema
 
-Install dependencies.
+El siguiente diagrama describe el flujo de extremo a extremo: desde el código fuente hasta la entrega en el clúster de Kubernetes en Azure.
 
-```bash
-pip install -r requirements.txt
-```
+```mermaid
+graph TD
+    subgraph "Desarrollador"
+        DEV[Local Dev / DevContainer] -->|git push| GH[GitHub Repository]
+    end
 
-Migrate database
+    subgraph "GitHub Actions CI/CD"
+        GH --> W1[1. Infra Pipeline: Terraform]
+        GH --> W2[2. App Pipeline: CI/CD]
+        
+        W1 -->|OIDC Login| TF[Terraform Apply]
+        W2 --> LINT[Flake8 & Unit Tests]
+        LINT --> COV[Coverage Report]
+        COV --> SCAN[Trivy Vulnerability Scan]
+        SCAN --> BLD[Docker Build & Push]
+    end
 
-```bash
-py manage.py makemigrations
-py manage.py migrate
-```
+    subgraph "Microsoft Azure Cloud"
+        TF -->|Aprovisiona| RG[Resource Group]
+        RG --> AKS[Azure Kubernetes Service - AKS]
+        RG --> ACR[Azure Container Registry - ACR]
+        RG --> ST[Storage Account: Remote State]
+        
+        BLD -->|Push Imagen| ACR
+        AKS -->|AcrPull Managed Identity| ACR
+    end
 
-### Database
-
-The database is generated as a file in the main path when the project is first run, and its name is `db.sqlite3`.
-
-Consider giving access permissions to the file for proper functioning.
-
-## Usage
-
-To run tests you can use this command.
-
-```bash
-py manage.py test
-```
-
-To run locally the project you can use this command.
-
-```bash
-py manage.py runserver
-```
-
-Open http://localhost:8000/api/ with your browser to see the result.
-
-### Features
-
-These services can perform,
-
-#### Create User
-
-To create a user, the endpoint **/api/users/** must be consumed with the following parameters:
-
-```bash
-  Method: POST
-```
-
-```json
-{
-    "dni": "dni",
-    "name": "name"
-}
-```
-
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
-
-```json
-{
-    "id": 1,
-    "dni": "dni",
-    "name": "name"
-}
-```
-
-If the response is unsuccessful, we will receive status 400 and the following message:
-
-```json
-{
-    "detail": "error"
-}
-```
-
-#### Get Users
-
-To get all users, the endpoint **/api/users** must be consumed with the following parameters:
-
-```bash
-  Method: GET
-```
-
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
-
-```json
-[
-    {
-        "id": 1,
-        "dni": "dni",
-        "name": "name"
-    }
-]
-```
-
-#### Get User
-
-To get an user, the endpoint **/api/users/<id>** must be consumed with the following parameters:
-
-```bash
-  Method: GET
-```
-
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
-
-```json
-{
-    "id": 1,
-    "dni": "dni",
-    "name": "name"
-}
-```
-
-If the user id does not exist, we will receive status 404 and the following message:
-
-```json
-{
-    "detail": "Not found."
-}
-```
-
-## License
-
-Copyright © 2023 Devsu. All rights reserved.
+    subgraph "Clúster Kubernetes (AKS)"
+        SVC[LoadBalancer Service: IP Pública] --> ING[API Pod: Réplica 1]
+        SVC --> ING2[API Pod: Réplica 2]
+        HPA[Horizontal Pod Autoscaler] -.->|Autoescalado| ING
+        ING --> DB[(PostgreSQL StatefulSet / PVC)]
+        ING2 --> DB
+    end
