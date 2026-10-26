@@ -40,6 +40,10 @@ tf-fmt:
 tf-validate:
 	@echo "Validating Terraform files..."
 	cd $(TF_DIR) && terraform validate
+	
+tf-plan:
+	@echo "Planning Terraform files..."
+	cd $(TF_DIR) && terraform plan -out=tfplan
 
 tf-apply:
 	@echo "Applying Terraform files..."
