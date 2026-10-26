@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Contenedor donde tú trabajas y programas
+  app:
+    image: mcr.microsoft.com/devcontainers/python:3.11-bookworm
+    volumes:
+      - ..:/workspaces/devsu-coderpad:cached
+    # Mantiene el contenedor encendido para VS Code
+    command: sleep infinity
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DB_ENGINE: ${DB_ENGINE}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: "db"              
+      DB_PORT: ${DB_PORT}
+    depends_on:
+      - db
+
+  # Contenedor de la Base de Datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres-dev-data:

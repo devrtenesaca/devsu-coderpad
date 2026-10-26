@@ -1,29 +1,30 @@
 {
-  "name": "Python 3.11 - Django API Dev",
-  // Imagen oficial optimizada para desarrollo en Python
-  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  "name": "Python 3.11 + PostgreSQL (DevContainer)",
+  
+  // Le dice a VS Code que use Docker Compose en lugar de una sola imagen
+  "dockerComposeFile": "docker-compose.yaml",
+  
+  // El servicio donde se conectará VS Code para editar código
+  "service": "app",
+  
+  // Ruta de trabajo dentro del contenedor
+  "workspaceFolder": "/workspaces/devsu-coderpad",
+  
+  // Reenvía los puertos de Django y Postgres a tu máquina física
+  "forwardPorts": [8000, 5432],
 
-  // Reenvía el puerto 8000 a tu máquina física automáticamente
-  "forwardPorts": [8000],
-
-  // Variables de entorno dentro del contenedor
-  "containerEnv": {
-    "DJANGO_SECRET_KEY": "clave-secreta-para-pruebas-locales-devcontainer",
-    "DATABASE_NAME": "db.sqlite3"
-  },
-
-  // Extensiones útiles instaladas dentro del contenedor en VS Code
+  // Extensiones útiles en VS Code
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "batisteo.vscode-django"
+        "batisteo.vscode-django",
+        "ckolkman.vscode-postgres"
       ]
     }
   },
 
-  // Comando que se ejecuta una sola vez tras crear el contenedor:
-  // Instala dependencias y corre las migraciones de SQLite automáticamente
-  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && python manage.py migrate"
+  // Instala dependencias, espera 3 segundos a que Postgres inicie y corre las migraciones
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && sleep 3 && python manage.py migrate"
 }

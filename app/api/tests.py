@@ -5,15 +5,20 @@ from .models import User
 
 class TestUserView(APITestCase):
     def setUp(self):
-        user = User(name='Test1', dni='09876543210')
-        user.save()
+        # Guardamos la instancia para conocer su ID dinámico
+        self.user = User.objects.create(name='Test1', dni='09876543210')
         self.url = reverse("users-list")
         self.data = {'name': 'Test2', 'dni': '09876543211'}
 
     def test_post(self):
         response = self.client.post(self.url, self.data, format='json')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(json.loads(response.content), {"id": 2, "name":"Test2", "dni":"09876543211"})
+        
+        # Validamos los campos de negocio y que exista un ID numérico válido
+        res_data = json.loads(response.content)
+        self.assertEqual(res_data["name"], self.data["name"])
+        self.assertEqual(res_data["dni"], self.data["dni"])
+        self.assertIn("id", res_data)
         self.assertEqual(User.objects.count(), 2)
 
     def test_get_list(self):
@@ -22,6 +27,11 @@ class TestUserView(APITestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_get(self):
-        response = self.client.get(self.url + '1/')
+        # Consultamos usando el ID real asignado por PostgreSQL
+        response = self.client.get(f"{self.url}{self.user.id}/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), {"id": 1, "name":"Test1", "dni":"09876543210"})
+        self.assertEqual(json.loads(response.content), {
+            "id": self.user.id,
+            "name": self.user.name,
+            "dni": self.user.dni
+        })
