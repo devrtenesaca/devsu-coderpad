@@ -74,5 +74,5 @@ jobs:
 
       # El Apply solo se ejecuta si se hace merge/push a main, no en Pull Requests
       - name: Terraform Apply (via Make)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+       # if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: make tf-apply

@@ -20,3 +20,6 @@ override.tf.json
 terraform.rc
 
 .env
+
+# Pero no ignorar los ejemplos
+!terraform.tfvars
