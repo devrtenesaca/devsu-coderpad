@@ -32,6 +32,47 @@ env:
   NAMESPACE: "devsu-app"
 
 jobs:
+ # ============================================================================
+  # ETAPA 0: Esperar a que la Infraestructura Exista (Pre-flight Check)
+  # ============================================================================
+  wait-for-infrastructure:
+    name: "Wait for AKS & ACR Infrastructure"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Iniciar sesión en Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verificar si AKS y ACR ya están listos
+        run: |
+          echo "🔍 Verificando existencia de infraestructura en Azure..."
+          RESOURCE_GROUP="devsu-rg-aks"
+          AKS_CLUSTER="devsu-aks-cluster"
+          ACR_NAME="devsuacr"
+
+          # Bucle de espera inteligente (reintenta hasta por 15 minutos)
+          for i in {1..30}; do
+            # Comprueba si el clúster AKS y el ACR responden en Azure
+            AKS_STATUS=$(az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_CLUSTER" --query "provisioningState" -o tsv 2>/dev/null || echo "NotFound")
+            ACR_STATUS=$(az acr show --name "$ACR_NAME" --query "provisioningState" -o tsv 2>/dev/null || echo "NotFound")
+
+            echo "Estado actual -> AKS: $AKS_STATUS | ACR: $ACR_STATUS"
+
+            if [ "$AKS_STATUS" == "Succeeded" ] && [ "$ACR_STATUS" == "Succeeded" ]; then
+              echo "✅ ¡La infraestructura está lista y operativa!"
+              exit 0
+            fi
+
+            echo "⏳ La infraestructura aún se está creando o no existe. Reintentando en 30 segundos (intento $i/30)..."
+            sleep 30
+          done
+
+          echo "❌ Error: Tiempo de espera agotado. La infraestructura no se levantó a tiempo."
+          exit 1
+
   # ============================================================================
   # ETAPA 1: Análisis Estático, Pruebas Unitarias y Cobertura (Requerido en el reto)
   # ============================================================================
@@ -82,7 +123,7 @@ jobs:
   # ============================================================================
   build-and-push:
     name: "Build & Push via Makefile"
-    needs: test-and-coverage
+    needs: [test-and-coverage,wait-for-infrastructure]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:

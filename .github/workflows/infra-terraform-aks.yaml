@@ -3,12 +3,12 @@ name: "1. Infrastructure (Terraform AKS via Make)"
 on:
   workflow_dispatch: # allows manual execution of the workflow
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - 'terraform/**'
       - 'Makefile'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - 'terraform/**'
       - 'Makefile'
