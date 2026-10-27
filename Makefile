@@ -104,6 +104,8 @@ app-deploy:
 	kubectl rollout status deployment/demo-api-deployment -n $(NAMESPACE) --timeout=120s
 
 	@echo "==> ✅ Despliegue completado con éxito en el namespace '$(NAMESPACE)'."
+	@IP=$$(kubectl get svc demo-api-service -n $(NAMESPACE) -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+	echo "==> 🌐 Endpoint Público: http://$$IP/api/users/"
 
 
 get-url: ## Muestra la URL pública del endpoint en Azure
