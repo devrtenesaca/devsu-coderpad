@@ -107,6 +107,7 @@ make backend-init     # creacion de backend cloud para IaC
 make deploy-infra-aks # Ejecuta la suite de comandos de Terraform para el despliegue
 make deploy-app       # Ejecuta el build de la imagen, hace el push al ACR y despliega en AKS
 make delete-app       # Elimina el namespace de AKS 
+make get-url          # obtiene la IP Pública del deploy
 make tf-destroy       # Elimina toda la infraestructura y desplegada
 
 ```
@@ -139,7 +140,7 @@ curl -X GET http://IP-PUBLICA/api/users/
 
 ### 2. Crear un Nuevo Usuario (POST)
 ```bash
-curl -X POST http://20.72.147.22/api/users/ \
+curl -X POST http://IP-PUBLICA/api/users/ \
   -H "Content-Type: application/json" \
   -d '{"dni": "0987654123", "name": "UserDevOps"}'
 ```

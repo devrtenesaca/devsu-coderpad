@@ -124,7 +124,7 @@ app-deploy:
 
 get-url: ## Muestra la URL pública del endpoint en Azure
 	@IP=$$(kubectl get svc demo-api-service -n $(NAMESPACE) -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
-	echo "==> 🌐 Endpoint Público: http://$$IP/api/users/"
+	echo "==> 🌐 Endpoint URL Público: http://$$IP/api/users/"
 
 
 deploy-infra-aks:
