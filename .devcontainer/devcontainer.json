@@ -26,5 +26,5 @@
   },
 
   // Instala dependencias, espera 3 segundos a que Postgres inicie y corre las migraciones
-  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && sleep 3 && python manage.py migrate"
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && sleep 3 && python app/manage.py migrate"
 }
