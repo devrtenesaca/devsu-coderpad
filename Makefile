@@ -95,6 +95,7 @@ app-deploy:
 	@echo "==> 5. Running Database Migrations..."
 	kubectl delete job django-migration-job -n $(NAMESPACE) --ignore-not-found
 	kubectl apply -f aks/04-migration-job.yaml -n $(NAMESPACE)
+	kubectl set image job/django-migration-job migration=$(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) -n $(NAMESPACE)
 	kubectl wait --for=condition=complete job/django-migration-job -n $(NAMESPACE) --timeout=60s
 
 	@echo "==> 6. Deploying the app..."
