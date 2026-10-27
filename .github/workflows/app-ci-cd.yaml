@@ -134,10 +134,26 @@ jobs:
       - name: Ejecutar make app-deploy
         run: make app-deploy
 
-      - name: Smoke Test (Validar API Pública en vivo)
+      - name: Smoke Test (Dinámico y Simplificado)
         run: |
-          echo "Esperando 10 segundos para verificar el servicio..."
-          sleep 10
-          echo "Consultando endpoint público: http://20.72.147.22/api/users/"
-          curl -f -s http://20.72.147.22/api/users/ || exit 1
-          echo "✅ ¡La API en producción respondió con HTTP 200 OK!"
+          echo "Esperando a que el balanceador de Azure esté listo..."
+          
+          # Bucle único: Espera la IP y prueba el endpoint automáticamente
+          for i in {1..6}; do
+            # Extrae la IP en vivo
+            IP=$(kubectl get svc demo-api-service -n devsu-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            
+            if [ -n "$IP" ]; then
+              echo "🌐 IP detectada: $IP. Probando conexión..."
+              if curl -f -s "http://$IP/api/users/"; then
+                echo -e "\n✅ ¡Smoke Test exitoso!"
+                exit 0
+              fi
+            fi
+            
+            echo "Intento $i/6: Esperando a que la API responda... reintentando en 10s"
+            sleep 10
+          done
+          
+          echo "❌ Error: El Smoke Test falló o expiró el tiempo de espera."
+          exit 1
