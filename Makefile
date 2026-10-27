@@ -84,7 +84,11 @@ app-deploy:
 
 	@echo "==> 3. Deploying ConfigMaps and Secrets..."
 	kubectl apply -f aks/02-configmap.yaml -n $(NAMESPACE)
-	kubectl apply -f aks/03-secret.yaml -n $(NAMESPACE)
+	kubectl create secret generic demo-api-secret \
+		--from-literal=DJANGO_SECRET_KEY="$(DJANGO_SECRET_KEY)" \
+		--from-literal=DB_PASSWORD="$(DB_PASSWORD)" \
+		--namespace=$(NAMESPACE) \
+		--dry-run=client -o yaml | kubectl apply -f -
 	kubectl apply -f aks/06-api-service.yaml -n $(NAMESPACE)
 	kubectl apply -f aks/07-api-hpa.yaml -n $(NAMESPACE)
 

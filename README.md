@@ -13,8 +13,8 @@ Solución integral para la prueba técnica de DevOps. El proyecto implementa una
 * **🌐 URL Pública de la API (Producción en vivo):**  
   👉 `http://20.72.147`
 * **⚙️ Pipelines en GitHub Actions (Trazabilidad Pública):**  
-  * [Pipeline 1: Infrastructure (Terraform AKS via Make)](https://github.com)
-  * [Pipeline 2: Application CI/CD (via Makefile)](https://github.com)
+  * [Pipeline 1: Infrastructure (Terraform AKS via Make)](https://github.com/devrtenesaca/devsu-coderpad/blob/master/.github/workflows/infra-terraform-aks.yaml)
+  * [Pipeline 2: Application CI/CD (via Makefile)](https://github.com/devrtenesaca/devsu-coderpad/blob/master/.github/workflows/app-ci-cd.yaml)
 
 ---
 

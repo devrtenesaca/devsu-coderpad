@@ -22,4 +22,4 @@ terraform.rc
 .env
 
 # Pero no ignorar los ejemplos
-!terraform.tfvars
+!terraform.tfvarsaks/03-secret.yaml
