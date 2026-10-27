@@ -57,21 +57,13 @@ graph TD
         POD1 --> DB
     end
 ---
-🧠 2. Decisiones de Ingeniería y Arquitectura (Senior Trade-offs)
-Para llevar la aplicación base a un entorno productivo real, se aplicaron los siguientes criterios de diseño:
-Migración de SQLite a PostgreSQL:
-Justificación: SQLite es un archivo plano local incompatible con entornos multi-réplica (replicas >= 2) debido a bloqueos concurrentes de escritura (database is locked) y restricciones de volúmenes en bloque estándar. Se desacopló la base de datos a un servicio dedicado de PostgreSQL 15 respaldado por un disco persistente (PVC), cumpliendo con el principio de Stateless (12-Factor App).
-Autenticación Passwordless con Azure OIDC (OpenID Connect):
-Seguridad: Se eliminaron los Service Principals con contraseñas estáticas. GitHub Actions e Identity Federation de Microsoft Entra ID negocian tokens criptográficos efímeros de corta duración en cada despliegue.
-Desacoplamiento Inteligente con Pre-flight Check:
-El pipeline de la aplicación incluye una fase de validación inicial que consulta el estado de Azure y espera de forma automatizada a que la infraestructura de Terraform esté completamente lista antes de iniciar las pruebas y el despliegue.
-Paridad Local y CI/CD mediante Makefile:
-Las tareas críticas (compilación, pruebas, init de Terraform y despliegue en AKS) están estandarizadas en un Makefile, garantizando que el desarrollador ejecute localmente exactamente lo mismo que corre en la nube.
-Aislamiento por Namespaces (devsu-app):
-Se evita el uso del namespace default, aplicando gobernanza, segmentación lógica y control del ciclo de vida de los recursos de forma aislada.
-📁 3. Estructura del Repositorio
-code
-Text
+
+
+## 📂 Estructura del Proyecto
+
+A continuación se detalla la organización de los archivos y directorios principales del repositorio:
+
+```text
 ├── .devcontainer/              # Entorno de desarrollo aislado en VS Code (Python 3.11 + Postgres)
 ├── .github/
 │   └── workflows/
@@ -98,38 +90,4 @@ Text
 ├── Dockerfile                  # Multi-stage Dockerfile de producción (Non-root user + Gunicorn)
 ├── Makefile                    # Estandarización de comandos para Local y Pipelines
 └── requirements.txt            # Dependencias (Django, DRF, Gunicorn, Psycopg2, Coverage)
-🛠️ 4. Automatización con Makefile
-Comando	Descripción
-make test	Ejecuta análisis estático (flake8) y pruebas unitarias con cobertura (coverage).
-make backend-init	Crea automáticamente el Resource Group y Storage Account para el tfstate remoto en Azure.
-make tf-init	Inicializa Terraform conectándose dinámicamente al backend en Azure Blob Storage.
-make tf-plan	Genera el plan de ejecución de infraestructura sin bloqueos interactivos.
-make tf-apply	Despliega el clúster AKS y el ACR en Azure.
-make app-build-push	Compila la imagen para linux/amd64 y la sube al Azure Container Registry con etiquetas duales (commit SHA y latest).
-make app-deploy	Conecta con AKS y aplica los manifiestos ejecutando migraciones seguras y actualización sin caídas (Rolling Update).
-🧪 5. Validación y Pruebas del Servicio
-1. Consultar Todos los Usuarios (GET)
-code
-Bash
-curl -X GET http://20.72.147.22/api/users/
-Respuesta:
-code
-JSON
-[{"id":1,"dni":"12313212313","name":"Elias DevOps"}]
-2. Crear un Nuevo Usuario (POST)
-code
-Bash
-curl -X POST http://20.72.147.22/api/users/ \
-  -H "Content-Type: application/json" \
-  -d '{"dni": "0987654321", "name": "Evaluador DevOps"}'
-Respuesta (HTTP 201 Created):
-code
-JSON
-{"id":2,"dni":"0987654321","name":"Evaluador DevOps"}
-3. Verificar Recursos en el Clúster
-code
-Bash
-kubectl get pods,svc,hpa -n devsu-app
-👤 Autor
-Ingeniero DevOps: Romel Tenesaca
-Repositorio GitHub: github.com/devrtenesaca/devsu-coderpad
+```
