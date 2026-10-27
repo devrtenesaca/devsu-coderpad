@@ -38,7 +38,7 @@ RUN groupadd -g 10001 appgroup && \
 
 # Copiar paquetes instalados desde el builder
 COPY --from=builder /root/.local /home/appuser/.local
-COPY --chown=appuser:appgroup . /app
+COPY --chown=appuser:appgroup ./app /app
 
 USER appuser
 

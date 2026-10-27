@@ -1,73 +1,143 @@
-name: "2. Application CI/CD"
+name: "2. Application CI/CD (via Makefile)"
 
 on:
+  workflow_dispatch: # Permite ejecutar manualmente con un botón en GitHub
   push:
-    branches: [ "main" ]
-    paths-ignore:
-      - 'terraform/**'
-      - 'docs/**'
-      - '*.md'
+    branches: [ "master" ]
+    paths:
+      - 'app/**'
+      - 'aks/**'
+      - 'Dockerfile'
+      - 'Makefile'
+      - 'requirements.txt'
   pull_request:
-    branches: [ "main" ]
-    paths-ignore:
-      - 'terraform/**'
-      - 'docs/**'
-      - '*.md'
+    branches: [ "master" ]
+    paths:
+      - 'app/**'
+      - 'Dockerfile'
+      - 'requirements.txt'
+
+permissions:
+  id-token: write
+  contents: read
+
+# Variables que se inyectan directamente a los targets de tu Makefile
+env:
+  RESOURCE_GROUP: "devsu-rg-aks"
+  AKS_CLUSTER: "devsu-aks-cluster"
+  ACR_NAME: "devsuacr"
+  ACR_SERVER: "devsuacr.azurecr.io"
+  IMAGE_NAME: "demo-devops-python"
+  IMAGE_TAG: ${{ github.sha }}
+  NAMESPACE: "devsu-app"
 
 jobs:
-  # 1. Pruebas y Calidad
-  code-quality-and-tests:
+  # ============================================================================
+  # ETAPA 1: Análisis Estático, Pruebas Unitarias y Cobertura (Requerido en el reto)
+  # ============================================================================
+  test-and-coverage:
+    name: "Code Quality & Tests"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: |
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt flake8 coverage
-          flake8 . --count --select=E9,F63,F7,F82 --show-source
-          coverage run --source='api' manage.py test
+
+      - name: Análisis Estático de Código (Flake8)
+        run: |
+          # Falla si hay errores críticos de sintaxis o variables no definidas
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Advertencias de estilo PEP8
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Pruebas Unitarias y Cobertura (Coverage)
+        env:
+          DJANGO_SECRET_KEY: "ci-test-temporary-secret-key-12345"
+          DB_ENGINE: "sqlite"
+          DATABASE_NAME: "ci_test.sqlite3"
+        run: |
+          cd app
+          coverage run --source='api' manage.py test api
           coverage report -m
+          coverage xml -o ../coverage.xml
 
-  # 2. Build, Escaneo y Push de Docker
+      - name: Guardar reporte de cobertura como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ============================================================================
+  # ETAPA 2: Compilación y Push a Azure Container Registry (via Make)
+  # ============================================================================
   build-and-push:
-    needs: code-quality-and-tests
+    name: "Build & Push via Makefile"
+    needs: test-and-coverage
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/demo-devops-python:${{ github.sha }},${{ secrets.DOCKER_USERNAME }}/demo-devops-python:latest
+      - name: Checkout del código
+        uses: actions/checkout@v4
 
-  # 3. Despliegue en el clúster AKS existente
-  deploy-to-aks:
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Iniciar sesión en Azure (OIDC Passwordless)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ejecutar make app-build-push
+        run: make app-build-push
+
+      # Escaneo de vulnerabilidades (Opcional solicitado en la consigna)
+      - name: Escaneo de Vulnerabilidades de Imagen con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ACR_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+  # ============================================================================
+  # ETAPA 3: Despliegue en AKS con Migraciones y Verificación (via Make)
+  # ============================================================================
+  deploy:
+    name: "Deploy to AKS via Makefile"
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en Azure (OIDC)
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Obtener Kubeconfig de AKS
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ejecutar make app-deploy
+        run: make app-deploy
+
+      - name: Smoke Test (Validar API Pública en vivo)
         run: |
-          az aks get-credentials \
-            --resource-group rg-devops-challenge \
-            --name aks-devops-demo \
-            --overwrite-existing
-      - name: Desplegar en Kubernetes
-        run: |
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/secret.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/hpa.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl set image deployment/demo-api-deployment api=${{ secrets.DOCKER_USERNAME }}/demo-devops-python:${{ github.sha }}
-          kubectl rollout status deployment/demo-api-deployment --timeout=120s
+          echo "Esperando 10 segundos para verificar el servicio..."
+          sleep 10
+          echo "Consultando endpoint público: http://20.72.147.22/api/users/"
+          curl -f -s http://20.72.147.22/api/users/ || exit 1
+          echo "✅ ¡La API en producción respondió con HTTP 200 OK!"

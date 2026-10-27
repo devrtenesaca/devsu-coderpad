@@ -14,14 +14,15 @@ spec:
       labels:
         app: demo-api
     spec:
+      # Seguridad: Contenedor sin privilegios de root (UID 10001)
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
         fsGroup: 10001
       containers:
         - name: api
-          image: <TU_DOCKERHUB_O_GHCR_USER>/demo-devops-python:latest
-          imagePullPolicy: IfNotPresent
+          image: devsuacr.azurecr.io/demo-devops-python:latest # ACR Azure 
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:
@@ -36,12 +37,14 @@ spec:
             limits:
               cpu: "500m"
               memory: "256Mi"
+          # Verifica que el contenedor responda
           livenessProbe:
             httpGet:
               path: /api/users/
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 20
+          # Verifica que esté listo para recibir tráfico
           readinessProbe:
             httpGet:
               path: /api/users/

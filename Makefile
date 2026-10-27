@@ -12,9 +12,11 @@ AKS_CLUSTER    ?= devsu-aks-cluster
 ACR_NAME       ?= devsuacr
 ACR_SERVER     ?= $(ACR_NAME).azurecr.io
 IMAGE_NAME     ?= demo-devops-python
-IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
+IMAGE_TAG      ?= latest
+NAMESPACE ?= devsu-app
+#IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
 
-.PHONY: tf-init backend-init tf-fmt tf-validate tf-apply tf-destroy deploy-infra-aks
+.PHONY: tf-init backend-init tf-fmt tf-validate tf-apply tf-destroy deploy-infra-aks get-url
 #-----Backend for Terraform state-----
 backend-init:
 	@echo "creating resource group for Terraform state..."
@@ -66,32 +68,44 @@ app-build-push:
 	az acr login --name $(ACR_NAME)
 
 	@echo "==> 2. Build and push image to ACR..."
-	docker build -t $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
+	docker build --platform linux/amd64 -t $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
 	docker push $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 
 # ---deploy to AKS---
 app-deploy:
-	@echo "==> 3. Connecting to existing AKS..."
+	@echo "==> 1. Connecting to existing AKS..."
 	az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(AKS_CLUSTER) --overwrite-existing
 
-	@echo "==> 2. Deploying PostgreSQL to AKS..."
-	kubectl apply -f k8s/postgres.yaml
-	@echo "Esperando a que PostgreSQL esté listo..."
-	kubectl rollout status deployment/postgres-deployment --timeout=120s
+	@echo "==> 2. Ensuring Namespace exists..."
+	kubectl apply -f aks/00-namespace.yaml
 
 	@echo "==> 3. Deploying ConfigMaps and Secrets..."
-	kubectl apply -f k8s/configmap.yaml
-	kubectl apply -f k8s/secret.yaml
-	kubectl apply -f k8s/service.yaml
-	kubectl apply -f k8s/hpa.yaml
+	kubectl apply -f aks/02-configmap.yaml -n $(NAMESPACE)
+	kubectl apply -f aks/03-secret.yaml -n $(NAMESPACE)
+	kubectl apply -f aks/06-api-service.yaml -n $(NAMESPACE)
+	kubectl apply -f aks/07-api-hpa.yaml -n $(NAMESPACE)
 
-	@echo "==> 4. Deploying the app to Kubernetes with the updated image..."
-	kubectl apply -f k8s/
-	kubectl set image deployment/demo-api-deployment api=$(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
-	kubectl rollout status deployment/demo-api-deployment --timeout=120s
+	@echo "==> 4. Deploying PostgreSQL to AKS..."
+	kubectl apply -f aks/01-postgres.yaml -n $(NAMESPACE)
+	kubectl rollout status deployment/postgres-deployment -n $(NAMESPACE) --timeout=120s
 
-	@echo "==> ✅ Despliegue completado con éxito."
+	@echo "==> 5. Running Database Migrations..."
+	kubectl delete job django-migration-job -n $(NAMESPACE) --ignore-not-found
+	kubectl apply -f aks/04-migration-job.yaml -n $(NAMESPACE)
+	kubectl wait --for=condition=complete job/django-migration-job -n $(NAMESPACE) --timeout=60s
+
+	@echo "==> 6. Deploying the app..."
+	kubectl apply -f aks/05-api-deployment.yaml -n $(NAMESPACE)
+	kubectl set image deployment/demo-api-deployment api=$(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) -n $(NAMESPACE)
+	kubectl rollout status deployment/demo-api-deployment -n $(NAMESPACE) --timeout=120s
+
+	@echo "==> ✅ Despliegue completado con éxito en el namespace '$(NAMESPACE)'."
+
+
+get-url: ## Muestra la URL pública del endpoint en Azure
+	@IP=$$(kubectl get svc demo-api-service -n $(NAMESPACE) -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+	echo "==> 🌐 Endpoint Público: http://$$IP/api/users/"
 
 
 deploy-infra-aks:
@@ -100,3 +114,13 @@ deploy-infra-aks:
 	$(MAKE) tf-fmt
 	$(MAKE) tf-validate
 	$(MAKE) tf-apply
+
+deploy-app:
+	@echo "Deploying application to AKS..."
+	$(MAKE) app-build-push
+	$(MAKE) app-deploy
+
+delete-app:
+	@echo "Deleting application from AKS..."
+	kubectl delete namespace $(NAMESPACE) --ignore-not-found	
+	

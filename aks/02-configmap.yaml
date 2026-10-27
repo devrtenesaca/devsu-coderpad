@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-api-config
+data:
+  DB_ENGINE: "postgresql"
+  DB_NAME: "devsudb"
+  DB_USER: "devsuuser"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DJANGO_ALLOWED_HOSTS: "*"
