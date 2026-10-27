@@ -21,7 +21,7 @@ spec:
         fsGroup: 10001
       containers:
         - name: api
-          image: devsuacr.azurecr.io/demo-devops-python:latest # ACR Azure 
+          image: devsuacr.azurecr.io/demo-devops-python:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

@@ -12,7 +12,7 @@ AKS_CLUSTER    ?= devsu-aks-cluster
 ACR_NAME       ?= devsuacr
 ACR_SERVER     ?= $(ACR_NAME).azurecr.io
 IMAGE_NAME     ?= demo-devops-python
-IMAGE_TAG      ?= latest
+IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
 NAMESPACE ?= devsu-app
 #IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
 
@@ -68,8 +68,10 @@ app-build-push:
 	az acr login --name $(ACR_NAME)
 
 	@echo "==> 2. Build and push image to ACR..."
-	docker build --platform linux/amd64 -t $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
+	docker build --platform linux/amd64 -t $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) -t $(ACR_SERVER)/$(IMAGE_NAME):latest .
 	docker push $(ACR_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker push $(ACR_SERVER)/$(IMAGE_NAME):latest
+	@echo "==> ✅ Imagenes subidas con tags: $(IMAGE_TAG) y latest"
 
 
 # ---deploy to AKS---

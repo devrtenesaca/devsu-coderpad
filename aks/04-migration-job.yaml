@@ -10,6 +10,7 @@ spec:
       containers:
         - name: migration
           image: devsuacr.azurecr.io/demo-devops-python:latest
+          imagePullPolicy: Always
           command: ["python", "manage.py", "migrate"]
           envFrom:
             - configMapRef:
