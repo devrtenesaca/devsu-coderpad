@@ -30,6 +30,8 @@ env:
   IMAGE_NAME: "demo-devops-python"
   IMAGE_TAG: ${{ github.sha }}
   NAMESPACE: "devsu-app"
+  DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
 jobs:
  # ============================================================================

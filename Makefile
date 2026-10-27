@@ -17,6 +17,16 @@ NAMESPACE ?= devsu-app
 #IMAGE_TAG      ?= $(shell git rev-parse --short HEAD)
 
 .PHONY: tf-init backend-init tf-fmt tf-validate tf-apply tf-destroy deploy-infra-aks get-url
+
+# Si existe un archivo .env en la raíz, lo lee automáticamente para las variables locales
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
+# Valores por defecto para local si el .env no los tuviera definidos
+DJANGO_SECRET_KEY ?= local-dev-secret-key-999
+DB_PASSWORD       ?= devsupassword123
 #-----Backend for Terraform state-----
 backend-init:
 	@echo "creating resource group for Terraform state..."
