@@ -1,9 +1,10 @@
 # 🚀 DevOps Challenge - API REST Django en Azure AKS
 
-[![Infrastructure Pipeline](https://github.com)](https://github.com)
-[![Application CI/CD](https://github.com)](https://github.com)
+[![Infrastructure Pipeline](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/infra-terraform-aks.yaml/badge.svg)](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/infra-terraform-aks.yaml)
+[![Application CI/CD](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/app-ci-cd.yaml/badge.svg)](https://github.com/devrtenesaca/devsu-coderpad/actions/workflows/app-ci-cd.yaml)
 
-Solución integral para el desafío técnico de DevOps. El proyecto implementa una arquitectura nativa de la nube (*Cloud-Native*) basada en microservicios contenerizados, aprovisionamiento automatizado con **Terraform**, autenticación de seguridad **OIDC (Passwordless)**, despliegue en **Azure Kubernetes Service (AKS)** con alta disponibilidad, y pipelines de entrega continua con **GitHub Actions** y **Makefile**.
+Solución integral para la prueba técnica de DevOps. El proyecto implementa una arquitectura nativa de la nube (*Cloud-Native*) basada en microservicios contenerizados, aprovisionamiento automatizado con **Terraform**, autenticación de seguridad **OIDC (Passwordless)**, despliegue en **Azure Kubernetes Service (AKS)** con alta disponibilidad, y pipelines de entrega continua con **GitHub Actions** y **Makefile**.
+
 
 ---
 
